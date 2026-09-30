@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HR & Cooperative Training Analytics Dashboard</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #0f172a;
+            color: #f8fafc;
+            padding: 20px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #1e293b;
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            color: #f8fafc;
+        }
+
+        .btn-reset {
+            background-color: #38bdf8;
+            color: #0f172a;
+            border: none;
+            padding: 7px 14px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-reset:hover {
+            background-color: #0284c7;
+            color: #ffffff;
+        }
+
+        .btn-export {
+            background-color: #10b981;
+            color: #ffffff;
+            border: none;
+            padding: 7px 14px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            margin-left: 8px;
+            transition: background 0.2s;
+        }
+
+        .btn-export:hover {
+            background-color: #059669;
+        }
+
+        /* KPI Grid - 5 Cards */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .kpi-card {
+            background-color: #1e293b;
+            padding: 12px 15px;
+            border-radius: 8px;
+            border: 1px solid #334155;
+            cursor: pointer;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+
+        .kpi-card:hover {
+            transform: translateY(-2px);
+            border-color: #38bdf8;
+        }
+
+        .kpi-card h3 {
+            font-size: 0.78rem;
+            color: #94a3b8;
+            margin-bottom: 6px;
+        }
+
+        .kpi-value {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #f8fafc;
+        }
+
+        .highlight-green { color: #10b981; }
+        .highlight-red { color: #f43f5e; }
+        .highlight-yellow { color: #f59e0b; }
+        .highlight-blue { color: #38bdf8; }
+
+        /* Compact Search & Filters Bar */
+        .search-filter-container {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .search-input-sm {
+            padding: 5px 12px;
+            border-radius: 16px;
+            border: 1px solid #475569;
+            background-color: #0f172a;
+            color: #f8fafc;
+            font-size: 0.78rem;
+            outline: none;
+            width: 190px;
+            transition: border-color 0.2s;
+        }
+
+        .search-input-sm:focus {
+            border-color: #38bdf8;
+        }
+
+        .select-filter-sm {
+            background-color: #0f172a;
+            color: #38bdf8;
+            border: 1px solid #334155;
+            padding: 5px 10px;
+            border-radius: 16px;
+            font-size: 0.78rem;
+            outline: none;
+            cursor: pointer;
+            font-weight: 500;
+            transition: border-color 0.2s;
+        }
+
+        .select-filter-sm:hover, .select-filter-sm:focus {
+            border-color: #38bdf8;
+        }
+
+        .filter-bar {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn-sm {
+            background-color: #0f172a;
+            color: #94a3b8;
+            border: 1px solid #334155;
+            padding: 5px 10px;
+            border-radius: 16px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .filter-btn-sm:hover, .filter-btn-sm.active {
+            background-color: #38bdf8;
+            color: #0f172a;
+            border-color: #38bdf8;
+            font-weight: 600;
+        }
+
+        /* Dashboard Layout Grid */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+
+        .card {
+            background-color: #1e293b;
+            border-radius: 8px;
+            padding: 14px;
+            border: 1px solid #334155;
+        }
+
+        .card-title {
+            font-size: 0.95rem;
+            margin-bottom: 12px;
+            color: #cbd5e1;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 230px;
+            width: 100%;
+        }
+
+        #map {
+            height: 230px;
+            border-radius: 6px;
+            width: 100%;
+        }
+
+        /* Table Styling */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.82rem;
+        }
+
+        th, td {
+            padding: 8px 10px;
+        }
+
+        tr {
+            border-bottom: 1px solid #334155;
+        }
+
+        tbody tr:hover {
+            background-color: #334155;
+        }
+
+        /* Progress Badges */
+        .badge-progress {
+            padding: 2px 7px;
+            border-radius: 10px;
+            font-size: 0.73rem;
+            font-weight: 600;
+            display: inline-block;
+        }
+        .bg-joined { background: #0284c7; color: #ffffff; }
+        .bg-active { background: #059669; color: #ffffff; }
+        .bg-final { background: #d97706; color: #ffffff; }
+        .bg-graduated { background: #475569; color: #cbd5e1; }
+
+        @media (max-width: 900px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>HR & Cooperative Training Analytics Dashboard</h1>
+        <div>
+            <button class="btn-reset" onclick="resetFilters()">Reset Filters</button>
+            <button class="btn-export" onclick="exportToExcel()">Export Excel</button>
+        </div>
+    </div>
+
+    <!-- KPI Cards -->
+    <div class="kpi-grid">
+        <div class="kpi-card" onclick="filterByStatus('ALL')">
+            <h3>Total Trainees</h3>
+            <p class="kpi-value" id="emp-count">1,470</p>
+        </div>
+        <div class="kpi-card" onclick="filterByStatus('Active')">
+            <h3>Active Trainees</h3>
+            <p class="kpi-value highlight-green" id="active-count">1,260</p>
+        </div>
+        <div class="kpi-card" onclick="filterByStatus('On Leave')">
+            <h3>On Leave</h3>
+            <p class="kpi-value highlight-yellow" id="leave-count">113</p>
+        </div>
+        <div class="kpi-card" onclick="filterByStatus('Absent')">
+            <h3>Absent / Off-Duty</h3>
+            <p class="kpi-value highlight-red" id="absent-count">97</p>
+        </div>
+        <div class="kpi-card">
+            <h3>Avg GPA</h3>
+            <p class="kpi-value highlight-blue" id="avg-gpa">3.10 / 5.0</p>
+        </div>
+    </div>
+
+    <!-- Charts and Map Grid -->
+    <div class="dashboard-grid">
+        <div class="card">
+            <h2 class="card-title">Training Locations & Branch Map</h2>
+            <div id="map"></div>
+        </div>
+
+        <div class="card">
+            <h2 class="card-title">Training Cohort & Duration Trend (2026)</h2>
+            <div class="chart-container">
+                <canvas id="trendChart"></canvas>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2 class="card-title">Trainees Distribution by Top Universities</h2>
+            <div class="chart-container">
+                <canvas id="deptChart"></canvas>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2 class="card-title">GPA Distribution by Specialization</h2>
+            <div class="chart-container">
+                <canvas id="salaryChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Cooperative Training Records Table -->
+        <div class="card" style="grid-column: 1 / -1; margin-top: 5px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h2 class="card-title" style="margin: 0; color: #f8fafc;">Cooperative Training Records</h2>
+                <span id="table-status" style="font-size: 0.82rem; color: #38bdf8;">Showing 1,470 records</span>
+            </div>
+
+            <!-- Compact English Search & Filters -->
+            <div class="search-filter-container">
+                <input 
+                    type="text" 
+                    id="searchInput" 
+                    class="search-input-sm"
+                    onkeyup="searchTable()" 
+                    placeholder="Search Name, ID, Major..." 
+                />
+
+                <!-- University Filter -->
+                <select id="universityFilter" class="select-filter-sm" onchange="filterByUniversity()">
+                    <option value="ALL">All Universities</option>
+                    <option value="King Saud University">King Saud University</option>
+                    <option value="Princess Nourah bint Abdulrahman University">Princess Nourah University</option>
+                    <option value="Imam Mohammad Ibn Saud Islamic University">Imam Mohammad University</option>
+                    <option value="King Abdulaziz University">King Abdulaziz University</option>
+                    <option value="University of Jeddah">University of Jeddah</option>
+                    <option value="Imam Abdulrahman Bin Faisal University">Imam Abdulrahman University (IAU)</option>
+                    <option value="King Fahd University of Petroleum and Minerals">KFUPM</option>
+                    <option value="Prince Mohammad Bin Fahd University">Prince Mohammad University (PMU)</option>
+                </select>
+
+                <!-- Training Duration Filter -->
+                <select id="durationFilter" class="select-filter-sm" onchange="filterByDuration()">
+                    <option value="ALL">All Durations</option>
+                    <option value="3 Months">3 Months</option>
+                    <option value="4 Months">4 Months</option>
+                    <option value="6 Months">6 Months</option>
+                </select>
+
+                <!-- Training Stage Filter -->
+                <select id="progressFilter" class="select-filter-sm" onchange="filterByProgress()">
+                    <option value="ALL">All Stages</option>
+                    <option value="Just Joined">Just Joined</option>
+                    <option value="In Progress">In Progress</option>
+                    <option value="Final Month">Final Month</option>
+                    <option value="Completed">Completed / Graduated</option>
+                </select>
+
+                <!-- Status Buttons -->
+                <div class="filter-bar">
+                    <button class="filter-btn-sm active" id="btn-all" onclick="filterByStatus('ALL')">All</button>
+                    <button class="filter-btn-sm" id="btn-active" onclick="filterByStatus('Active')">Active</button>
+                    <button class="filter-btn-sm" id="btn-leave" onclick="filterByStatus('On Leave')">On Leave</button>
+                    <button class="filter-btn-sm" id="btn-absent" onclick="filterByStatus('Absent')">Absent</button>
+                </div>
+            </div>
+
+            <div style="max-height: 380px; overflow-y: auto;">
+                <table id="employeeTable">
+                    <thead>
+                        <tr style="border-bottom: 2px solid #334155; color: #94a3b8; position: sticky; top: 0; background: #1e293b;">
+                            <th>National ID</th>
+                            <th>Trainee Name</th>
+                            <th>University / Institution</th>
+                            <th>Specialization</th>
+                            <th onclick="sortByGPA()" style="cursor: pointer; color: #38bdf8;" title="Click to sort by GPA">
+                                GPA ↕
+                            </th>
+                            <th>Period & Duration</th>
+                            <th>Progress & Remaining Days</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        <!-- Populated by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
